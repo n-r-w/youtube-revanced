@@ -14,6 +14,7 @@ download_latest() {
     local download_url="https://github.com/$repo_name/releases/download/$tag_name/$file_name-$cli_tag$file_extension"
 
     echo "$file_name$file_extension: $tag_name"
+    echo "url: $download_url"
 
     curl -L -o "$file_name$file_extension" "$download_url"
 }
@@ -21,7 +22,6 @@ download_latest() {
 download_latest_single() {
     local repo_name=$1
     local file_name=$2
-    local file_extension=$3
 
     local url="https://api.github.com/repos/$repo_name/releases/latest"
     local response=$(curl --silent "$url")
@@ -31,9 +31,14 @@ download_latest_single() {
 
     local download_url=$(echo "$response" | jq -r '.assets[].browser_download_url')
 
-    echo "$file_name$file_extension: $tag_name"
+    echo "$file_name: $tag_name"
 
-    curl -L -o "$file_name$file_extension" "$download_url"
+    echo "$response" | jq -r '.assets[].browser_download_url' | while read -r line; do
+        echo "url: $line"
+        local url_filename=$(basename "$line")
+        local target_filename="$file_name"_"$url_filename"
+        curl -L -o "$target_filename"  "$line"
+    done
 }
 
 mkdir build_temp
@@ -68,8 +73,8 @@ cd ..
 
 rm -r build_temp
 
-download_latest_single "ReVanced/GmsCore" "microg" ".apk"
+download_latest_single "ReVanced/GmsCore" "microg"
 
-zip youtube-revanced.zip youtube.apk microg.apk
+zip youtube-revanced.zip youtube.apk microg*
 
-rm youtube.apk microg.apk
+rm -f youtube.apk microg*
